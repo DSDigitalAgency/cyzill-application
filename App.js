@@ -1,31 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import AppNavigator from './src/components/navigation/AppNavigator';
+import { Provider } from 'react-redux';
+import { store } from './src/components/redux/store';
+import 'react-native-gesture-handler';
+import * as Location from 'expo-location';
+import { UserLocationContext } from './src/components/context/UserLocationContext';
 
-import HomeScreen from "./screens/HomeScreen";
-import SearchScreen from "./screens/SearchScreen";
-import MapsScreen from "./screens/MapsScreen";
-import MenuScreen from './screens/MenuScreen';
-import PropertyDetailsScreen from "./screens/PropertyDetailsScreen";
-import LoginScreen from './screens/LoginScreen';
-import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
-import SignupScreen from './screens/SignupScreen';
+const App = () => {
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
 
-const Stack = createStackNavigator();
+  useEffect(() => {
+    (async () => {
+      
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
 
-export default function App() {
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location.coords);
+    })();
+  }, []);
+
+  let text = 'Waiting..';
+  if (errorMsg) {
+    text = errorMsg;
+  } else if (location) {
+    text = JSON.stringify(location);
+  }
+
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Maps" component={MapsScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Profile" component={MenuScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="PropertyDetailsScreen" component={PropertyDetailsScreen} options={{ headerShown: false }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Provider store={store}>
+      <UserLocationContext.Provider value={{location,setLocation}}>
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
+      </UserLocationContext.Provider>
+    </Provider>
   );
-}
+};
+
+export default App;
